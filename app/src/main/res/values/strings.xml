@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">Aurium</string>
+    <string name="login_title">Aurium</string>
+    <string name="label_phone_number">Número de Celular</string>
+    <string name="label_pin">PIN (4 dígitos)</string>
+    <string name="btn_login">Iniciar Sesión</string>
+    <string name="btn_forgot_password">¿Olvidaste tu PIN?</string>
+    <string name="text_no_account">¿No tienes una cuenta?</string>
+    <string name="text_register">Regístrate aquí</string>
+    <string name="error_login_failed">Celular o PIN incorrectos</string>
+    <string name="text_loading">Cargando...</string>
+
+    <string name="register_title">Crear Cuenta</string>
+    <string name="label_full_name">Nombre Completo</string>
+    <string name="label_document_number">Número de Documento</string>
+    <string name="label_email">Correo Electrónico</string>
+    <string name="label_address">Dirección de Residencia</string>
+    <string name="label_country">País</string>
+    <string name="label_confirm_pin">Confirmar PIN</string>
+    <string name="btn_register">Registrarse</string>
+    <string name="text_already_have_account">¿Ya tienes una cuenta?</string>
+    <string name="text_login_here">Inicia sesión aquí</string>
+    <string name="register_loading_title">Registrando...</string>
+    <string name="dialog_success_title">Éxito</string>
+    <string name="dialog_error_title">Error</string>
+    <string name="register_success_message">Cuenta creada correctamente</string>
+    <string name="btn_accept">Aceptar</string>
+    <string name="error_passwords_match">Los PIN no coinciden</string>
+    <string name="error_register_failed">Por favor completa todos los campos correctamente</string>
+</resources>
