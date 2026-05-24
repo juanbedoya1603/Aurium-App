@@ -27,14 +27,24 @@ class RegisterViewModel(
             return
         }
 
+        if (documentNumber.length !in 8..10) {
+            onResult(false, R.string.error_invalid_document)
+            return
+        }
+
         val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$".toRegex()
         if (!email.matches(emailRegex)) {
             onResult(false, R.string.error_invalid_email)
             return
         }
 
-        if (phoneNumber.length < 10) {
+        if (phoneNumber.length != 10) {
             onResult(false, R.string.error_invalid_phone)
+            return
+        }
+
+        if (pin.length != 4) {
+            onResult(false, R.string.error_register_failed)
             return
         }
 

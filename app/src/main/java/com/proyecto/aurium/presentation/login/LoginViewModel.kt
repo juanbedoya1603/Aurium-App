@@ -17,7 +17,7 @@ class LoginViewModel(
             return
         }
 
-        if (phoneNumber.length < 10) {
+        if (phoneNumber.length != 10) {
             onResult(false, R.string.error_invalid_phone)
             return
         }

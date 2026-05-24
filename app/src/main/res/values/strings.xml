@@ -29,4 +29,7 @@
     <string name="error_user_exists">Ya existe una cuenta con este número de celular</string>
     <string name="error_invalid_email">El formato del correo electrónico es inválido</string>
     <string name="error_invalid_phone">El número de celular debe tener al menos 10 dígitos</string>
+    <string name="error_no_internet">No hay conexión a internet. Verifica tu red.</string>
+    <string name="error_invalid_document">El número de documento debe tener entre 8 y 10 dígitos</string>
+    <string name="error_account_blocked">Cuenta bloqueada temporalmente por exceso de intentos. Intenta más tarde.</string>
 </resources>

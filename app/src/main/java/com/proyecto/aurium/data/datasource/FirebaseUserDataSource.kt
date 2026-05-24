@@ -12,7 +12,11 @@ class FirebaseUserDataSource {
         return database.child(phoneNumber).get().await()
     }
 
-    suspend fun saveUser(phoneNumber: String, userData: Map<String, String>) {
+    suspend fun saveUser(phoneNumber: String, userData: Map<String, Any>) {
         database.child(phoneNumber).setValue(userData).await()
+    }
+
+    suspend fun updateUser(phoneNumber: String, updates: Map<String, Any>) {
+        database.child(phoneNumber).updateChildren(updates).await()
     }
 }

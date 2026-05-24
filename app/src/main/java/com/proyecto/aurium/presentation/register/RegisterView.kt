@@ -131,7 +131,7 @@ fun RegisterView(
         OutlinedTextField(
             value = phoneNumber,
             onValueChange = {
-                if (it.all { char -> char.isDigit() }) phoneNumber = it
+                if (it.all { char -> char.isDigit() } && it.length <= 10) phoneNumber = it
             },
             label = { Text(stringResource(id = R.string.label_phone_number)) },
             modifier = Modifier.fillMaxWidth(),
