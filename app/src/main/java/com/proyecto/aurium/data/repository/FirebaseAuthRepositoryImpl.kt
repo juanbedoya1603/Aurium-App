@@ -33,6 +33,11 @@ class FirebaseAuthRepositoryImpl(
 
     override suspend fun register(user: User): Pair<Boolean, Int> {
         return try {
+            val existingUser = dataSource.getUser(user.phoneNumber)
+            if (existingUser.exists()) {
+                return Pair(false, R.string.error_user_exists)
+            }
+
             val hashedPin = hashPin(user.pin)
             val userData = mapOf(
                 "fullName" to user.fullName,

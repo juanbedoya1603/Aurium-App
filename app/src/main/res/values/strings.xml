@@ -9,7 +9,6 @@
     <string name="text_register">Regístrate aquí</string>
     <string name="error_login_failed">Celular o PIN incorrectos</string>
     <string name="text_loading">Cargando...</string>
-
     <string name="register_title">Crear Cuenta</string>
     <string name="label_full_name">Nombre Completo</string>
     <string name="label_document_number">Número de Documento</string>
@@ -27,4 +26,7 @@
     <string name="btn_accept">Aceptar</string>
     <string name="error_passwords_match">Los PIN no coinciden</string>
     <string name="error_register_failed">Por favor completa todos los campos correctamente</string>
+    <string name="error_user_exists">Ya existe una cuenta con este número de celular</string>
+    <string name="error_invalid_email">El formato del correo electrónico es inválido</string>
+    <string name="error_invalid_phone">El número de celular debe tener al menos 10 dígitos</string>
 </resources>

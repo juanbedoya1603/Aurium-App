@@ -17,6 +17,16 @@ class LoginViewModel(
             return
         }
 
+        if (phoneNumber.length < 10) {
+            onResult(false, R.string.error_invalid_phone)
+            return
+        }
+
+        if (pin.length != 4) {
+            onResult(false, R.string.error_login_failed)
+            return
+        }
+
         viewModelScope.launch {
             val result = loginUseCase(phoneNumber, pin)
             onResult(result.first, result.second)

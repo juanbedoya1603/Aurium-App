@@ -27,6 +27,17 @@ class RegisterViewModel(
             return
         }
 
+        val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$".toRegex()
+        if (!email.matches(emailRegex)) {
+            onResult(false, R.string.error_invalid_email)
+            return
+        }
+
+        if (phoneNumber.length < 10) {
+            onResult(false, R.string.error_invalid_phone)
+            return
+        }
+
         if (pin != confirmPin) {
             onResult(false, R.string.error_passwords_match)
             return
