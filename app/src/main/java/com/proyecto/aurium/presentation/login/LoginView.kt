@@ -36,7 +36,7 @@ fun LoginView(
     var messageDialog by remember { mutableIntStateOf(0) }
 
     if (showLoadingAlert) {
-        ShowLoadingAlertDialog()
+        ShowLoadingAlertDialog(onDismiss = { showLoadingAlert = false })
     }
 
     if (showMessageAlert) {
@@ -107,15 +107,17 @@ fun LoginView(
             onClick = {
                 showLoadingAlert = true
                 viewModel.login(phoneNumber, pin) { success, message ->
-                    showLoadingAlert = false
-                    if (success) {
-                        navController.navigate("home") {
-                            popUpTo("login") { inclusive = true }
+                    if (showLoadingAlert) {
+                        showLoadingAlert = false
+                        if (success) {
+                            navController.navigate("home") {
+                                popUpTo("login") { inclusive = true }
+                            }
+                        } else {
+                            titleDialog = R.string.dialog_error_title
+                            messageDialog = message
+                            showMessageAlert = true
                         }
-                    } else {
-                        titleDialog = R.string.dialog_error_title
-                        messageDialog = message
-                        showMessageAlert = true
                     }
                 }
             },
@@ -133,7 +135,7 @@ fun LoginView(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        TextButton(onClick = { /* TODO: Lógica de recuperar PIN */ }) {
+        TextButton(onClick = { }) {
             Text(
                 text = stringResource(id = R.string.btn_forgot_password),
                 color = MaterialTheme.colorScheme.secondary

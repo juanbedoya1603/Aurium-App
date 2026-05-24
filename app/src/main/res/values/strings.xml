@@ -24,6 +24,7 @@
     <string name="dialog_error_title">Error</string>
     <string name="register_success_message">Cuenta creada correctamente</string>
     <string name="btn_accept">Aceptar</string>
+    <string name="btn_cancel">Cancelar</string>
     <string name="error_passwords_match">Los PIN no coinciden</string>
     <string name="error_register_failed">Por favor completa todos los campos correctamente</string>
     <string name="error_user_exists">Ya existe una cuenta con este número de celular</string>

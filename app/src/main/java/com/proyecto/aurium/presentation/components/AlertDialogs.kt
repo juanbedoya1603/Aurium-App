@@ -13,9 +13,9 @@ import androidx.compose.ui.res.stringResource
 import com.proyecto.aurium.R
 
 @Composable
-fun ShowLoadingAlertDialog() {
+fun ShowLoadingAlertDialog(onDismiss: () -> Unit) {
     AlertDialog(
-        onDismissRequest = { },
+        onDismissRequest = { onDismiss() },
         title = { Text(stringResource(id = R.string.text_loading)) },
         text = {
             Box(
@@ -25,7 +25,11 @@ fun ShowLoadingAlertDialog() {
                 CircularProgressIndicator()
             }
         },
-        confirmButton = { }
+        confirmButton = {
+            Button(onClick = { onDismiss() }) {
+                Text(stringResource(id = R.string.btn_cancel))
+            }
+        }
     )
 }
 

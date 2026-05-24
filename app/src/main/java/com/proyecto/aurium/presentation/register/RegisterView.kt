@@ -45,7 +45,7 @@ fun RegisterView(
     val scrollState = rememberScrollState()
 
     if (showLoadingAlert) {
-        ShowLoadingAlertDialog()
+        ShowLoadingAlertDialog(onDismiss = { showLoadingAlert = false })
     }
 
     if (showMessageAlert) {
@@ -192,14 +192,16 @@ fun RegisterView(
                     pin = pin,
                     confirmPin = confirmPin
                 ) { success, message ->
-                    titleDialog = if (success) {
-                        R.string.dialog_success_title
-                    } else {
-                        R.string.dialog_error_title
+                    if (showLoadingAlert) {
+                        titleDialog = if (success) {
+                            R.string.dialog_success_title
+                        } else {
+                            R.string.dialog_error_title
+                        }
+                        messageDialog = message
+                        showLoadingAlert = false
+                        showMessageAlert = true
                     }
-                    messageDialog = message
-                    showLoadingAlert = false
-                    showMessageAlert = true
                 }
             },
             modifier = Modifier
