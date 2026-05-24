@@ -8,15 +8,19 @@ class FirebaseUserDataSource {
 
     private val database = FirebaseDatabase.getInstance().getReference("users")
 
-    suspend fun getUser(phoneNumber: String): DataSnapshot {
-        return database.child(phoneNumber).get().await()
+    suspend fun getUserByPhoneNumber(phoneNumber: String): DataSnapshot {
+        return database.orderByChild("phoneNumber").equalTo(phoneNumber).get().await()
     }
 
-    suspend fun saveUser(phoneNumber: String, userData: Map<String, Any>) {
-        database.child(phoneNumber).setValue(userData).await()
+    fun generateUserId(): String {
+        return database.push().key ?: java.util.UUID.randomUUID().toString()
     }
 
-    suspend fun updateUser(phoneNumber: String, updates: Map<String, Any>) {
-        database.child(phoneNumber).updateChildren(updates).await()
+    suspend fun saveUser(userId: String, userData: Map<String, Any>) {
+        database.child(userId).setValue(userData).await()
+    }
+
+    suspend fun updateUser(userId: String, updates: Map<String, Any>) {
+        database.child(userId).updateChildren(updates).await()
     }
 }

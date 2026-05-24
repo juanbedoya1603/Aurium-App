@@ -16,16 +16,19 @@ class FirebaseAuthRepositoryImpl(
 
     override suspend fun login(phoneNumber: String, pin: String): Pair<Boolean, Int> {
         return try {
-            val dataSnapshot = dataSource.getUser(phoneNumber)
+            val dataSnapshot = dataSource.getUserByPhoneNumber(phoneNumber)
 
-            if (dataSnapshot.exists()) {
-                val blockedUntil = dataSnapshot.child("blockedUntil").value as? Long ?: 0L
+            if (dataSnapshot.exists() && dataSnapshot.hasChildren()) {
+                val userSnapshot = dataSnapshot.children.first()
+                val userId = userSnapshot.key.toString()
+
+                val blockedUntil = userSnapshot.child("blockedUntil").value as? Long ?: 0L
                 if (System.currentTimeMillis() < blockedUntil) {
                     return Pair(false, R.string.error_account_blocked)
                 }
 
-                val dbPin = dataSnapshot.child("pin").value.toString()
-                val dbSalt = dataSnapshot.child("salt").value.toString()
+                val dbPin = userSnapshot.child("pin").value.toString()
+                val dbSalt = userSnapshot.child("salt").value.toString()
                 val hashedInputPin = hashPin(pin, dbSalt)
 
                 if (dbPin == hashedInputPin) {
@@ -33,10 +36,10 @@ class FirebaseAuthRepositoryImpl(
                         "failedAttempts" to 0,
                         "blockedUntil" to 0L
                     )
-                    dataSource.updateUser(phoneNumber, updates)
+                    dataSource.updateUser(userId, updates)
                     Pair(true, 0)
                 } else {
-                    val currentAttempts = (dataSnapshot.child("failedAttempts").value as? Long ?: 0L) + 1
+                    val currentAttempts = (userSnapshot.child("failedAttempts").value as? Long ?: 0L) + 1
                     val updates = mutableMapOf<String, Any>("failedAttempts" to currentAttempts)
 
                     val errorMessage = if (currentAttempts >= 3) {
@@ -47,7 +50,7 @@ class FirebaseAuthRepositoryImpl(
                         R.string.error_login_failed
                     }
 
-                    dataSource.updateUser(phoneNumber, updates)
+                    dataSource.updateUser(userId, updates)
                     Pair(false, errorMessage)
                 }
             } else {
@@ -69,25 +72,28 @@ class FirebaseAuthRepositoryImpl(
 
     override suspend fun register(user: User): Pair<Boolean, Int> {
         return try {
-            val existingUser = dataSource.getUser(user.phoneNumber)
-            if (existingUser.exists()) {
+            val existingUserSnapshot = dataSource.getUserByPhoneNumber(user.phoneNumber)
+            if (existingUserSnapshot.exists() && existingUserSnapshot.hasChildren()) {
                 return Pair(false, R.string.error_user_exists)
             }
 
+            val userId = dataSource.generateUserId()
             val salt = generateSalt()
             val hashedPin = hashPin(user.pin, salt)
 
             val userData = mapOf<String, Any>(
+                "userId" to userId,
                 "fullName" to user.fullName,
                 "documentNumber" to user.documentNumber,
                 "email" to user.email,
+                "phoneNumber" to user.phoneNumber,
                 "pin" to hashedPin,
                 "salt" to salt,
                 "failedAttempts" to 0,
                 "blockedUntil" to 0L
             )
 
-            dataSource.saveUser(user.phoneNumber, userData)
+            dataSource.saveUser(userId, userData)
             Pair(true, R.string.register_success_message)
 
         } catch (e: UnknownHostException) {
