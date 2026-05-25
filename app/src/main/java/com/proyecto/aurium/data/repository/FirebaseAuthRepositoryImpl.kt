@@ -90,7 +90,8 @@ class FirebaseAuthRepositoryImpl(
                 "pin" to hashedPin,
                 "salt" to salt,
                 "failedAttempts" to 0,
-                "blockedUntil" to 0L
+                "blockedUntil" to 0L,
+                "balance" to 0.0
             )
 
             dataSource.saveUser(userId, userData)

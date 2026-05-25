@@ -110,7 +110,7 @@ fun LoginView(
                     if (showLoadingAlert) {
                         showLoadingAlert = false
                         if (success) {
-                            navController.navigate("home") {
+                            navController.navigate("home/${phoneNumber}") {
                                 popUpTo("login") { inclusive = true }
                             }
                         } else {
