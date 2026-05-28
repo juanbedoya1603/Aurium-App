@@ -53,7 +53,7 @@ fun TransactionsView(
             onDismissRequest = { showMessageAlert = false },
             confirmButton = {
                 TextButton(onClick = { showMessageAlert = false }) {
-                    Text("Accept", color = AuriumOrange)
+                    Text("Aceptar", color = AuriumOrange)
                 }
             },
             title = { Text(alertTitle) },
@@ -72,14 +72,14 @@ fun TransactionsView(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Transactions",
+            text = "Transacciones",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
         )
 
         Text(
-            text = "Deposit, withdraw, or transfer funds instantly",
+            text = "Deposita, retira o transfiere fondos al instante",
             fontSize = 14.sp,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             modifier = Modifier.padding(top = 8.dp)
@@ -98,6 +98,11 @@ fun TransactionsView(
             val modes = listOf("Deposit", "Withdraw", "Transfer")
             modes.forEach { mode ->
                 val isSelected = selectedMode == mode
+                val modeLabel = when (mode) {
+                    "Deposit" -> "Depositar"
+                    "Withdraw" -> "Retirar"
+                    else -> "Transferir"
+                }
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -118,7 +123,7 @@ fun TransactionsView(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = mode,
+                        text = modeLabel,
                         color = if (isSelected) Color.White else Color.White.copy(alpha = 0.5f),
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp
@@ -142,9 +147,9 @@ fun TransactionsView(
             ) {
                 Text(
                     text = when (selectedMode) {
-                        "Deposit" -> "Deposit BTC"
-                        "Withdraw" -> "Withdraw BTC"
-                        else -> "Transfer BTC"
+                        "Deposit" -> "Depositar BTC"
+                        "Withdraw" -> "Retirar BTC"
+                        else -> "Transferir BTC"
                     },
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
@@ -153,9 +158,9 @@ fun TransactionsView(
 
                 Text(
                     text = when (selectedMode) {
-                        "Deposit" -> "Add Bitcoin to your balance."
-                        "Withdraw" -> "Withdraw Bitcoin from your wallet."
-                        else -> "Send Bitcoin to another Aurium user."
+                        "Deposit" -> "Agrega Bitcoin a tu saldo."
+                        "Withdraw" -> "Retira Bitcoin de tu billetera."
+                        else -> "Envía Bitcoin a otro usuario de Aurium."
                     },
                     fontSize = 12.sp,
                     color = Color.White.copy(alpha = 0.5f),
@@ -170,9 +175,9 @@ fun TransactionsView(
                                 destinationPhone = it
                             }
                         },
-                        label = { Text("Recipient Phone Number") },
+                        label = { Text("Número de celular del destinatario") },
                         leadingIcon = {
-                            Icon(Icons.Default.Phone, contentDescription = "Phone", tint = AuriumOrange)
+                            Icon(Icons.Default.Phone, contentDescription = "Teléfono", tint = AuriumOrange)
                         },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -195,7 +200,7 @@ fun TransactionsView(
                             amountText = it
                         }
                     },
-                    label = { Text("Amount in BTC") },
+                    label = { Text("Monto en BTC") },
                     leadingIcon = {
                         Icon(Icons.Default.CurrencyBitcoin, contentDescription = "BTC", tint = AuriumOrange)
                     },
@@ -218,7 +223,7 @@ fun TransactionsView(
                         when (selectedMode) {
                             "Deposit" -> {
                                 viewModel.processTransaction(amountText, isDeposit = true) { success, message ->
-                                    alertTitle = if (success) "Success!" else "Error"
+                                    alertTitle = if (success) "Éxito" else "Error"
                                     alertMessage = message
                                     showMessageAlert = true
                                     if (success) amountText = ""
@@ -226,7 +231,7 @@ fun TransactionsView(
                             }
                             "Withdraw" -> {
                                 viewModel.processTransaction(amountText, isDeposit = false) { success, message ->
-                                    alertTitle = if (success) "Success!" else "Error"
+                                    alertTitle = if (success) "Éxito" else "Error"
                                     alertMessage = message
                                     showMessageAlert = true
                                     if (success) amountText = ""
@@ -234,7 +239,7 @@ fun TransactionsView(
                             }
                             "Transfer" -> {
                                 viewModel.transferBtc(amountText, destinationPhone) { success, message ->
-                                    alertTitle = if (success) "Success!" else "Error"
+                                    alertTitle = if (success) "Éxito" else "Error"
                                     alertMessage = message
                                     showMessageAlert = true
                                     if (success) {
@@ -264,9 +269,9 @@ fun TransactionsView(
                         else -> Icons.Default.Send
                     }
                     val label = when (selectedMode) {
-                        "Deposit" -> "Deposit BTC"
-                        "Withdraw" -> "Withdraw BTC"
-                        else -> "Transfer BTC"
+                        "Deposit" -> "Depositar BTC"
+                        "Withdraw" -> "Retirar BTC"
+                        else -> "Transferir BTC"
                     }
                     Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
