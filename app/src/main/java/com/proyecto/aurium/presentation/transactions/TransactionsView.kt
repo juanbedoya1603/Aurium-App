@@ -34,10 +34,10 @@ fun TransactionsView(
     navController: NavController,
     viewModel: TransactionsViewModel = viewModel()
 ) {
-    var selectedMode by remember { mutableStateOf("Deposit") } // Modes: Deposit, Withdraw, Transfer
+    var selectedMode by remember { mutableStateOf("Deposit") }
     var amountText by remember { mutableStateOf("") }
     var destinationPhone by remember { mutableStateOf("") }
-    
+
     val isLoading by viewModel.isLoading.collectAsState()
 
     var showMessageAlert by remember { mutableStateOf(false) }
@@ -77,7 +77,7 @@ fun TransactionsView(
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
         )
-        
+
         Text(
             text = "Deposit, withdraw, or transfer funds instantly",
             fontSize = 14.sp,
@@ -102,12 +102,14 @@ fun TransactionsView(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            if (isSelected) Brush.horizontalGradient(
-                                colors = listOf(Color(0xFFF39C12), Color(0xFFE67E22))
-                            ) else Color.Transparent
+                        .then(
+                            if (isSelected) Modifier.background(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(Color(0xFFF39C12), Color(0xFFE67E22))
+                                )
+                            ) else Modifier.background(Color.Transparent)
                         )
-                        .clickable { 
+                        .clickable {
                             selectedMode = mode
                             amountText = ""
                             destinationPhone = ""
@@ -138,7 +140,6 @@ fun TransactionsView(
                     .fillMaxWidth()
                     .padding(24.dp)
             ) {
-                // Header inside the card depending on the selected mode
                 Text(
                     text = when (selectedMode) {
                         "Deposit" -> "Deposit BTC"
@@ -161,7 +162,6 @@ fun TransactionsView(
                     modifier = Modifier.padding(top = 4.dp, bottom = 24.dp)
                 )
 
-                // Render destination phone input if "Transfer" is selected
                 if (selectedMode == "Transfer") {
                     OutlinedTextField(
                         value = destinationPhone,
@@ -188,7 +188,6 @@ fun TransactionsView(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                // Amount Input
                 OutlinedTextField(
                     value = amountText,
                     onValueChange = {
@@ -214,7 +213,6 @@ fun TransactionsView(
 
                 Spacer(modifier = Modifier.height(28.dp))
 
-                // Action Button
                 Button(
                     onClick = {
                         when (selectedMode) {
