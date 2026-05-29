@@ -3,6 +3,7 @@ package com.proyecto.aurium.presentation.transactions
 import androidx.lifecycle.ViewModel
 import com.google.firebase.database.FirebaseDatabase
 import com.proyecto.aurium.data.session.UserSession
+import com.proyecto.aurium.domain.model.Transaction
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -12,6 +13,7 @@ class TransactionsViewModel : ViewModel() {
     val isLoading: StateFlow<Boolean> = _isLoading
 
     private val usersRef = FirebaseDatabase.getInstance().getReference("users")
+    private val transactionsRef = FirebaseDatabase.getInstance().getReference("transactions")
 
     fun processTransaction(amountStr: String, isDeposit: Boolean, onResult: (Boolean, String) -> Unit) {
         val amount = amountStr.toDoubleOrNull()
@@ -35,18 +37,23 @@ class TransactionsViewModel : ViewModel() {
 
         _isLoading.value = true
 
-        val newBalance = if (isDeposit) {
-            currentBalance + amount
-        } else {
-            currentBalance - amount
-        }
+        val newBalance = if (isDeposit) currentBalance + amount else currentBalance - amount
+        val txType = if (isDeposit) "DEPOSIT" else "WITHDRAW"
 
         usersRef.child(userId).child("balanceBtc").setValue(newBalance)
             .addOnSuccessListener {
-                _isLoading.value = false
                 UserSession.balanceBtc = newBalance
-                val txType = if (isDeposit) "depósito" else "retiro"
-                onResult(true, "$txType realizado con éxito por BTC ${"%.6f".format(amount)}")
+                saveTransaction(
+                    userId = userId,
+                    type = txType,
+                    amountBtc = amount,
+                    counterpartName = "",
+                    counterpartPhone = ""
+                )
+
+                _isLoading.value = false
+                val txLabel = if (isDeposit) "Depósito" else "Retiro"
+                onResult(true, "$txLabel realizado con éxito por BTC ${"%.6f".format(amount)}")
             }
             .addOnFailureListener { exception ->
                 _isLoading.value = false
@@ -63,6 +70,7 @@ class TransactionsViewModel : ViewModel() {
 
         val senderId = UserSession.userId
         val senderPhone = UserSession.phoneNumber
+        val senderName = UserSession.fullName ?: senderPhone ?: "Usuario"
         if (senderId.isNullOrEmpty() || senderPhone.isNullOrEmpty()) {
             onResult(false, "Sesión inválida o expirada.")
             return
@@ -110,6 +118,7 @@ class TransactionsViewModel : ViewModel() {
                     else      -> 0.0
                 }
 
+                val recipientName = recipientSnapshot.child("fullName").value?.toString() ?: recipientPhone
                 val senderNewBalance = currentBalance - amount
                 val recipientNewBalance = recipientBalance + amount
 
@@ -120,9 +129,27 @@ class TransactionsViewModel : ViewModel() {
 
                 usersRef.updateChildren(updates)
                     .addOnSuccessListener {
-                        _isLoading.value = false
                         UserSession.balanceBtc = senderNewBalance
-                        val recipientName = recipientSnapshot.child("fullName").value?.toString() ?: recipientPhone
+
+                        // Transacción del emisor: TRANSFER_SENT
+                        saveTransaction(
+                            userId = senderId,
+                            type = "TRANSFER_SENT",
+                            amountBtc = amount,
+                            counterpartName = recipientName,
+                            counterpartPhone = recipientPhone
+                        )
+
+                        // Transacción del receptor: TRANSFER_RECEIVED
+                        saveTransaction(
+                            userId = recipientId,
+                            type = "TRANSFER_RECEIVED",
+                            amountBtc = amount,
+                            counterpartName = senderName,
+                            counterpartPhone = senderPhone
+                        )
+
+                        _isLoading.value = false
                         onResult(true, "Transferencia de BTC ${"%.6f".format(amount)} a $recipientName realizada con éxito.")
                     }
                     .addOnFailureListener { exception ->
@@ -134,5 +161,36 @@ class TransactionsViewModel : ViewModel() {
                 _isLoading.value = false
                 onResult(false, "No se pudo buscar el destinatario: ${exception.message}")
             }
+    }
+
+    private fun saveTransaction(
+        userId: String,
+        type: String,
+        amountBtc: Double,
+        counterpartName: String,
+        counterpartPhone: String
+    ) {
+        val txId = transactionsRef.child(userId).push().key
+            ?: java.util.UUID.randomUUID().toString()
+
+        val transaction = Transaction(
+            id = txId,
+            type = type,
+            amountBtc = amountBtc,
+            timestamp = System.currentTimeMillis(),
+            counterpartName = counterpartName,
+            counterpartPhone = counterpartPhone
+        )
+
+        val txMap = mapOf(
+            "id" to transaction.id,
+            "type" to transaction.type,
+            "amountBtc" to transaction.amountBtc,
+            "timestamp" to transaction.timestamp,
+            "counterpartName" to transaction.counterpartName,
+            "counterpartPhone" to transaction.counterpartPhone
+        )
+
+        transactionsRef.child(userId).child(txId).setValue(txMap)
     }
 }

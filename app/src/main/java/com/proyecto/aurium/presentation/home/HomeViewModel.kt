@@ -8,6 +8,7 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.proyecto.aurium.data.repository.FirebaseUserRepositoryImpl
 import com.proyecto.aurium.data.session.UserSession
+import com.proyecto.aurium.domain.model.Transaction
 import com.proyecto.aurium.domain.usecase.GetUserDataUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,8 +28,10 @@ data class HomeUiState(
     val balanceUsd: Double = 0.0,
     val priceHistory: List<PricePoint> = emptyList(),
     val priceChangePercent: Float = 0f,
+    val transactions: List<Transaction> = emptyList(),
     val isLoadingUser: Boolean = true,
-    val isLoadingChart: Boolean = true
+    val isLoadingChart: Boolean = true,
+    val isLoadingTransactions: Boolean = true
 )
 
 class HomeViewModel : ViewModel() {
@@ -38,8 +41,9 @@ class HomeViewModel : ViewModel() {
 
     private val getUserDataUseCase = GetUserDataUseCase(FirebaseUserRepositoryImpl())
     private val usersRef = FirebaseDatabase.getInstance().getReference("users")
+    private val transactionsRef = FirebaseDatabase.getInstance().getReference("transactions")
     private var balanceListener: ValueEventListener? = null
-
+    private var transactionsListener: ValueEventListener? = null
 
     fun loadUserData(phoneNumber: String) {
         viewModelScope.launch {
@@ -51,6 +55,7 @@ class HomeViewModel : ViewModel() {
                     isLoadingUser = false
                 )
                 listenToBalance()
+                listenToTransactions()
             } else {
                 _uiState.value = _uiState.value.copy(isLoadingUser = false)
             }
@@ -60,7 +65,6 @@ class HomeViewModel : ViewModel() {
 
     private fun listenToBalance() {
         val userId = UserSession.userId ?: return
-
         balanceListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val newBalance = when (val value = snapshot.value) {
@@ -78,9 +82,55 @@ class HomeViewModel : ViewModel() {
             }
             override fun onCancelled(error: DatabaseError) {}
         }
+        usersRef.child(userId).child("balanceBtc").addValueEventListener(balanceListener!!)
+    }
 
-        usersRef.child(userId).child("balanceBtc")
-            .addValueEventListener(balanceListener!!)
+    private fun listenToTransactions() {
+        val userId = UserSession.userId ?: return
+        transactionsListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val list = mutableListOf<Transaction>()
+                for (child in snapshot.children) {
+                    val tx = Transaction(
+                        id             = child.child("id").value?.toString() ?: "",
+                        type           = child.child("type").value?.toString() ?: "",
+                        amountBtc      = when (val v = child.child("amountBtc").value) {
+                            is Double -> v
+                            is Long   -> v.toDouble()
+                            else      -> 0.0
+                        },
+                        timestamp      = (child.child("timestamp").value as? Long) ?: 0L,
+                        counterpartName  = child.child("counterpartName").value?.toString() ?: "",
+                        counterpartPhone = child.child("counterpartPhone").value?.toString() ?: ""
+                    )
+                    list.add(tx)
+                }
+                // Ordenar por más reciente primero
+                list.sortByDescending { it.timestamp }
+                _uiState.value = _uiState.value.copy(
+                    transactions = list,
+                    isLoadingTransactions = false
+                )
+            }
+            override fun onCancelled(error: DatabaseError) {
+                _uiState.value = _uiState.value.copy(isLoadingTransactions = false)
+            }
+        }
+        transactionsRef.child(userId).addValueEventListener(transactionsListener!!)
+    }
+    fun logout() {
+        val userId = UserSession.userId
+        if (userId != null) {
+            balanceListener?.let { usersRef.child(userId).child("balanceBtc").removeEventListener(it) }
+            transactionsListener?.let { transactionsRef.child(userId).removeEventListener(it) }
+        }
+        // Limpiar sesión
+        UserSession.userId = null
+        UserSession.phoneNumber = null
+        UserSession.fullName = null
+        UserSession.balanceBtc = 0.0
+        // Resetear estado
+        _uiState.value = HomeUiState()
     }
 
     private fun fetchBitcoinPrice() {
@@ -137,9 +187,6 @@ class HomeViewModel : ViewModel() {
 
     override fun onCleared() {
         super.onCleared()
-        val userId = UserSession.userId ?: return
-        balanceListener?.let {
-            usersRef.child(userId).child("balanceBtc").removeEventListener(it)
-        }
+        logout()
     }
 }

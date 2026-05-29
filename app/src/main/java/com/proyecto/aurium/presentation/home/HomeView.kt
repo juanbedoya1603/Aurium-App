@@ -11,9 +11,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,13 +30,17 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.proyecto.aurium.domain.model.Transaction
 import com.proyecto.aurium.presentation.transactions.TransactionsView
 import com.proyecto.aurium.ui.theme.AuriumOrange
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 @Composable
@@ -48,6 +55,36 @@ fun HomeView(
 
     var selectedTab by remember { mutableIntStateOf(0) }
     val uiState by viewModel.uiState.collectAsState()
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Cerrar sesión") },
+            text = { Text("¿Estás seguro que deseas cerrar sesión?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLogoutDialog = false
+                        viewModel.logout()
+                        navController.navigate("login") {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                ) {
+                    Text("Cerrar sesión", color = Color(0xFFE74C3C))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("Cancelar", color = AuriumOrange)
+                }
+            },
+            containerColor = Color(0xFF252B3D),
+            titleContentColor = Color.White,
+            textContentColor = Color.White.copy(alpha = 0.7f)
+        )
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -61,8 +98,10 @@ fun HomeView(
                 .padding(innerPadding)
         ) {
             when (selectedTab) {
-                0 -> HomeContent(uiState = uiState)
-                // Pestaña de Transacciones: usa directamente el TransactionsView del compañero
+                0 -> HomeContent(
+                    uiState = uiState,
+                    onLogoutClick = { showLogoutDialog = true }
+                )
                 1 -> TransactionsView(navController = navController)
             }
         }
@@ -105,7 +144,7 @@ fun AuriumBottomNav(selectedTab: Int, onTabSelected: (Int) -> Unit) {
 }
 
 @Composable
-fun HomeContent(uiState: HomeUiState) {
+fun HomeContent(uiState: HomeUiState, onLogoutClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -113,7 +152,11 @@ fun HomeContent(uiState: HomeUiState) {
             .padding(horizontal = 20.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        HomeHeader(userName = uiState.userName, isLoading = uiState.isLoadingUser)
+        HomeHeader(
+            userName = uiState.userName,
+            isLoading = uiState.isLoadingUser,
+            onLogoutClick = onLogoutClick
+        )
         BalanceCard(
             balanceBtc = uiState.balanceBtc,
             balanceUsd = uiState.balanceUsd,
@@ -126,13 +169,16 @@ fun HomeContent(uiState: HomeUiState) {
             changePercent = uiState.priceChangePercent,
             isLoading = uiState.isLoadingChart
         )
+        TransactionHistorySection(
+            transactions = uiState.transactions,
+            isLoading = uiState.isLoadingTransactions
+        )
         Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
-
 @Composable
-fun HomeHeader(userName: String, isLoading: Boolean) {
+fun HomeHeader(userName: String, isLoading: Boolean, onLogoutClick: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -151,23 +197,40 @@ fun HomeHeader(userName: String, isLoading: Boolean) {
                 color = MaterialTheme.colorScheme.onBackground
             )
         }
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .clip(CircleShape)
-                .background(AuriumOrange),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.AccountBalanceWallet,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(22.dp)
-            )
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(AuriumOrange),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AccountBalanceWallet,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF252B3D)),
+                contentAlignment = Alignment.Center
+            ) {
+                IconButton(onClick = onLogoutClick) {
+                    Icon(
+                        imageVector = Icons.Default.Logout,
+                        contentDescription = "Cerrar sesión",
+                        tint = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
         }
     }
 }
-
 
 @Composable
 fun BalanceCard(
@@ -197,25 +260,14 @@ fun BalanceCard(
         ) {
             if (isLoading) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(80.dp),
+                    modifier = Modifier.fillMaxWidth().height(80.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(
-                        color = Color.White,
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(28.dp)
-                    )
+                    CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(28.dp))
                 }
             } else {
                 Column {
-                    Text(
-                        text = "Saldo disponible",
-                        fontSize = 13.sp,
-                        color = Color.White.copy(alpha = 0.8f),
-                        fontWeight = FontWeight.Medium
-                    )
+                    Text("Saldo disponible", fontSize = 13.sp, color = Color.White.copy(alpha = 0.8f), fontWeight = FontWeight.Medium)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "₿ ${"%.6f".format(balanceBtc)}",
@@ -226,29 +278,17 @@ fun BalanceCard(
                     Spacer(modifier = Modifier.height(12.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                         Column {
-                            Text(
-                                text = "Equivalente USD",
-                                fontSize = 11.sp,
-                                color = Color.White.copy(alpha = 0.7f)
-                            )
+                            Text("Equivalente USD", fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f))
                             Text(
                                 text = if (balanceUsd > 0) usdFormatter.format(balanceUsd) else "---",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White
                             )
                         }
                         Column {
-                            Text(
-                                text = "Precio BTC",
-                                fontSize = 11.sp,
-                                color = Color.White.copy(alpha = 0.7f)
-                            )
+                            Text("Precio BTC", fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f))
                             Text(
                                 text = if (currentBtcPrice > 0) usdFormatter.format(currentBtcPrice) else "---",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White
                             )
                         }
                     }
@@ -258,6 +298,133 @@ fun BalanceCard(
     }
 }
 
+@Composable
+fun TransactionHistorySection(
+    transactions: List<Transaction>,
+    isLoading: Boolean
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF252B3D))
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                text = "Movimientos",
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+            Text(
+                text = "Historial de tu cuenta",
+                fontSize = 12.sp,
+                color = Color.White.copy(alpha = 0.45f),
+                modifier = Modifier.padding(top = 2.dp, bottom = 16.dp)
+            )
+
+            when {
+                isLoading -> {
+                    Box(modifier = Modifier.fillMaxWidth().height(80.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = AuriumOrange, strokeWidth = 2.dp)
+                    }
+                }
+                transactions.isEmpty() -> {
+                    Box(modifier = Modifier.fillMaxWidth().height(80.dp), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "Aún no hay movimientos",
+                            fontSize = 14.sp,
+                            color = Color.White.copy(alpha = 0.35f)
+                        )
+                    }
+                }
+                else -> {
+                    // Mostrar máximo 20 movimientos recientes
+                    transactions.take(20).forEachIndexed { index, tx ->
+                        TransactionItem(transaction = tx)
+                        if (index < transactions.size - 1 && index < 19) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                color = Color.White.copy(alpha = 0.07f)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TransactionItem(transaction: Transaction) {
+    val (icon, iconBg, label, amountPrefix) = when (transaction.type) {
+        "DEPOSIT" -> Quad(
+            Icons.Default.ArrowDownward,
+            Color(0xFF2ECC71),
+            "Depósito",
+            "+"
+        )
+        "WITHDRAW" -> Quad(
+            Icons.Default.ArrowUpward,
+            Color(0xFFE74C3C),
+            "Retiro",
+            "-"
+        )
+        "TRANSFER_SENT" -> Quad(
+            Icons.Default.SwapHoriz,
+            Color(0xFFF39C12),
+            "Enviado${if (transaction.counterpartName.isNotEmpty()) " a ${transaction.counterpartName}" else ""}",
+            "-"
+        )
+        "TRANSFER_RECEIVED" -> Quad(
+            Icons.Default.SwapHoriz,
+            Color(0xFF3498DB),
+            "Recibido${if (transaction.counterpartName.isNotEmpty()) " de ${transaction.counterpartName}" else ""}",
+            "+"
+        )
+        else -> Quad(Icons.Default.SwapHoriz, Color.Gray, transaction.type, "")
+    }
+
+    val amountColor = if (amountPrefix == "+") Color(0xFF2ECC71) else Color(0xFFE74C3C)
+    val dateFormat = SimpleDateFormat("dd MMM · HH:mm", Locale("es", "CO"))
+    val dateStr = dateFormat.format(Date(transaction.timestamp))
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(iconBg.copy(alpha = 0.15f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(imageVector = icon, contentDescription = null, tint = iconBg, modifier = Modifier.size(20.dp))
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(text = dateStr, fontSize = 11.sp, color = Color.White.copy(alpha = 0.45f))
+        }
+
+        Text(
+            text = "$amountPrefix₿ ${"%.6f".format(transaction.amountBtc)}",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = amountColor
+        )
+    }
+}
+
+data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
 @Composable
 fun BitcoinChartCard(
@@ -283,10 +450,7 @@ fun BitcoinChartCard(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(AuriumOrange.copy(alpha = 0.15f)),
+                        modifier = Modifier.size(36.dp).clip(CircleShape).background(AuriumOrange.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Text("₿", fontSize = 18.sp, color = AuriumOrange)
@@ -300,23 +464,17 @@ fun BitcoinChartCard(
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
                         text = if (currentPrice > 0) usdFormatter.format(currentPrice) else "---",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color.White
+                        fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color.White
                     )
                     if (!isLoading) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = if (isPositive) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
-                                contentDescription = null,
-                                tint = changeColor,
-                                modifier = Modifier.size(18.dp)
+                                contentDescription = null, tint = changeColor, modifier = Modifier.size(18.dp)
                             )
                             Text(
                                 text = "${"%.2f".format(kotlin.math.abs(changePercent))}%",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = changeColor
+                                fontSize = 13.sp, fontWeight = FontWeight.Bold, color = changeColor
                             )
                         }
                     }
@@ -325,53 +483,34 @@ fun BitcoinChartCard(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(7.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF2ECC71))
-                )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Box(modifier = Modifier.size(7.dp).clip(CircleShape).background(Color(0xFF2ECC71)))
                 Text("Tiempo real · 24h", fontSize = 11.sp, color = Color.White.copy(alpha = 0.5f))
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
             if (isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(160.dp),
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(modifier = Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = AuriumOrange, strokeWidth = 2.dp)
                 }
             } else if (priceHistory.isNotEmpty()) {
                 BitcoinLineChart(
                     priceHistory = priceHistory,
                     isPositive = isPositive,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(160.dp)
+                    modifier = Modifier.fillMaxWidth().height(160.dp)
                 )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("24h atrás", fontSize = 10.sp, color = Color.White.copy(alpha = 0.35f))
                 Text("Ahora", fontSize = 10.sp, color = Color.White.copy(alpha = 0.35f))
             }
         }
     }
 }
-
 
 @Composable
 fun BitcoinLineChart(
@@ -433,9 +572,7 @@ fun BitcoinLineChart(
         drawCircle(color = Color.White, radius = 2.5f, center = Offset(lastX, lastY))
         drawLine(
             color = Color.White.copy(alpha = 0.06f),
-            start = Offset(0f, yOf(minPrice)),
-            end = Offset(width, yOf(minPrice)),
-            strokeWidth = 1f
+            start = Offset(0f, yOf(minPrice)), end = Offset(width, yOf(minPrice)), strokeWidth = 1f
         )
     }
 }
