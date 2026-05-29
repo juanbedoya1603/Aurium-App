@@ -13,10 +13,6 @@ class TransactionsViewModel : ViewModel() {
 
     private val usersRef = FirebaseDatabase.getInstance().getReference("users")
 
-    /**
-     * Processes the transaction. If isDeposit = true, adds the amount to the current balance.
-     * If false, subtracts it. Returns (success, message).
-     */
     fun processTransaction(amountStr: String, isDeposit: Boolean, onResult: (Boolean, String) -> Unit) {
         val amount = amountStr.toDoubleOrNull()
         if (amount == null || amount <= 0) {
@@ -48,7 +44,6 @@ class TransactionsViewModel : ViewModel() {
         usersRef.child(userId).child("balanceBtc").setValue(newBalance)
             .addOnSuccessListener {
                 _isLoading.value = false
-                // Update local session as well (though HomeViewModel will do it automatically)
                 UserSession.balanceBtc = newBalance
                 val txType = if (isDeposit) "depósito" else "retiro"
                 onResult(true, "$txType realizado con éxito por BTC ${"%.6f".format(amount)}")
@@ -59,10 +54,6 @@ class TransactionsViewModel : ViewModel() {
             }
     }
 
-    /**
-     * Performs a transfer of BTC from the current user's balance to the destination user's account.
-     * Validates amounts, user sessions, recipient phone number, and updates both accounts in Firebase.
-     */
     fun transferBtc(amountStr: String, destinationPhone: String, onResult: (Boolean, String) -> Unit) {
         val amount = amountStr.toDoubleOrNull()
         if (amount == null || amount <= 0) {
@@ -96,7 +87,6 @@ class TransactionsViewModel : ViewModel() {
 
         _isLoading.value = true
 
-        // Find the recipient by phone number
         usersRef.orderByChild("phoneNumber").equalTo(recipientPhone).get()
             .addOnSuccessListener { snapshot ->
                 val recipientSnapshot = snapshot.children.firstOrNull()
@@ -123,7 +113,6 @@ class TransactionsViewModel : ViewModel() {
                 val senderNewBalance = currentBalance - amount
                 val recipientNewBalance = recipientBalance + amount
 
-                // Create updates map for atomic operation
                 val updates = mapOf(
                     "$senderId/balanceBtc" to senderNewBalance,
                     "$recipientId/balanceBtc" to recipientNewBalance
